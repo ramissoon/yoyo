@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoyo 🌍 – Quiz sur la Côte d'Ivoire</title>
+  <meta name="description" content="Apprends la Côte d'Ivoire en t'amusant avec des quiz interactifs !">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════ -->
+<header id="header">
+  <div class="header-inner">
+
+    <a class="logo" href="#" onclick="loadHome();return false;">
+      🌍 Yoyo <span class="logo-sub">CI</span>
+    </a>
+
+    <div class="hdr-search">
+      <span class="hdr-search-icon">🔎</span>
+      <input type="text" placeholder="Rechercher un quiz..."
+             id="hdr-search-inp"
+             onkeydown="if(event.key==='Enter'&&this.value.trim()) doSearch(this.value)">
+    </div>
+
+    <div class="hdr-btns">
+      <button class="hdr-btn" onclick="goRandom()">🎲 Aléatoire</button>
+      <button class="hdr-btn" onclick="goQuickQcm()">⚡ Quiz Rapide</button>
+
+      <!-- Visiteur non connecté -->
+      <div id="hdr-guest" style="display:flex;gap:6px">
+        <button class="hdr-btn" onclick="openAuth('login')">Connexion</button>
+        <button class="hdr-btn solid" onclick="openAuth('register')">S'inscrire</button>
+      </div>
+
+      <!-- Utilisateur connecté -->
+      <div id="hdr-user" class="hdr-user" style="display:none">
+        <button class="hdr-user-btn"
+                onclick="this.closest('.hdr-user').querySelector('.hdr-dropdown').classList.toggle('open')">
+          <span id="hdr-icon">🦁</span>
+          <span id="hdr-pseudo">Moi</span>
+          <span style="font-size:10px;opacity:.6">▾</span>
+        </button>
+        <div class="hdr-dropdown">
+          <a href="#" onclick="loadProfile(S.user?.pseudo);closeMenu();return false;">👤 Mon profil</a>
+          <a href="#" onclick="openCreateQuiz();closeMenu();return false;">✏️ Créer un quiz</a>
+          <a href="#" id="admin-menu-link" style="display:none"
+             onclick="loadAdmin();closeMenu();return false;">⚙️ Administration</a>
+          <button onclick="logout()">🚪 Déconnexion</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════
+     NAVBAR
+═══════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="navbar-inner">
+    <div class="nav-item active" id="nav-home"        onclick="loadHome();setActiveNav('home')">🏠 Accueil</div>
+    <div class="nav-item"        id="nav-leaderboard" onclick="loadLeaderboard();setActiveNav('leaderboard')">🏆 Classement</div>
+    <div class="nav-item"        id="nav-cats"        onclick="toggleCatBar()">📂 Catégories ▾</div>
+  </div>
+</nav>
+
+<!-- Categories bar -->
+<div id="cat-bar">
+  <div class="cat-bar-inner" id="cat-pills"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════════ -->
+<main id="main">
+
+<!-- ─── HOME ──────────────────────────────────── -->
+<div class="page active" id="pg-home">
+  <div class="container">
+    <div class="two-col">
+
+      <!-- Left column -->
+      <div>
+        <!-- Popular -->
+        <div class="section-box">
+          <div class="section-head">
+            <h2>🔥 Quiz Populaires</h2>
+            <a class="see-more" href="#" onclick="loadMoreQuizzes('popular');return false;">Voir plus</a>
+          </div>
+          <ul class="quiz-list" id="pop-list">
+            <div class="spinner"></div>
+          </ul>
+        </div>
+
+        <!-- Newest -->
+        <div class="section-box">
+          <div class="section-head">
+            <h2>✨ Nouveaux Quiz</h2>
+            <a class="see-more" href="#" onclick="loadMoreQuizzes('newest');return false;">Voir plus</a>
+          </div>
+          <ul class="quiz-list" id="new-list">
+            <div class="spinner"></div>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right column: leaderboards -->
+      <div>
+        <div class="section-box">
+          <div class="section-head">
+            <h2>🎮 Meilleurs Joueurs</h2>
+            <a class="see-more" href="#" onclick="loadLeaderboard();return false;">Voir plus</a>
+          </div>
+          <table class="lb-table">
+            <thead><tr><th>#</th><th>Joueur</th><th>Score</th><th>Joués</th></tr></thead>
+            <tbody id="home-players"><tr><td colspan="4"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="section-box">
+          <div class="section-head">
+            <h2>🔥 Meilleurs Créateurs</h2>
+            <a class="see-more" href="#" onclick="loadLeaderboard();return false;">Voir plus</a>
+          </div>
+          <table class="lb-table">
+            <thead><tr><th>#</th><th>Créateur</th><th>🔥</th><th>Quiz</th></tr></thead>
+            <tbody id="home-creators"><tr><td colspan="4"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── SEARCH ─────────────────────────────────── -->
+<div class="page" id="pg-search">
+  <div class="container">
+    <div class="section-box">
+      <div class="section-head">
+        <h2>🔎 Résultats pour <span id="search-query"></span></h2>
+      </div>
+      <div id="search-list" style="padding:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CATEGORY ───────────────────────────────── -->
+<div class="page" id="pg-category">
+  <div class="container">
+    <div class="section-box">
+      <div class="section-head">
+        <h2 id="cat-title">Catégorie</h2>
+      </div>
+      <div id="cat-list" style="padding:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── LEADERBOARD ────────────────────────────── -->
+<div class="page" id="pg-leaderboard">
+  <div class="container">
+    <div class="section-box" style="margin-top:8px">
+      <div class="section-head"><h2>🏆 Classements Yoyo</h2></div>
+      <div style="padding:12px 14px">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchLbTab('players', this)">🎮 Joueurs</button>
+          <button class="tab-btn"        onclick="switchLbTab('creators', this)">🔥 Créateurs</button>
+        </div>
+        <div id="lb-pane-players" class="tab-pane active">
+          <table class="lb-table">
+            <thead><tr><th>#</th><th>Joueur</th><th>Score total</th><th>Quiz joués</th></tr></thead>
+            <tbody id="lb-players"><tr><td colspan="4"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div id="lb-pane-creators" class="tab-pane">
+          <table class="lb-table">
+            <thead><tr><th>#</th><th>Créateur</th><th>🔥 Flammes</th><th>Quiz créés</th></tr></thead>
+            <tbody id="lb-creators"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── QUIZ INFO ──────────────────────────────── -->
+<div class="page" id="pg-quiz-info">
+  <div class="container">
+    <div class="qi-wrap" style="padding-top:8px">
+      <button class="btn btn-gray btn-sm" onclick="history.back()" style="margin-bottom:12px">← Retour</button>
+      <div id="qi-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PLAY ───────────────────────────────────── -->
+<div class="page" id="pg-play">
+  <div class="container">
+    <div class="play-wrap" style="padding-top:8px">
+      <div class="play-bar">
+        <button class="btn btn-gray btn-sm" onclick="if(confirm('Quitter ?')){clearInterval(PL.timer);loadHome()}">✕ Quitter</button>
+        <div class="play-title" id="play-title">Quiz</div>
+        <div class="play-score" id="play-score">0/0</div>
+        <div class="play-timer" id="play-timer">0:00</div>
+      </div>
+      <div id="play-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PROFILE ────────────────────────────────── -->
+<div class="page" id="pg-profile">
+  <div class="container">
+    <div style="max-width:760px;margin:8px auto">
+      <button class="btn btn-gray btn-sm" onclick="history.back()" style="margin-bottom:12px">← Retour</button>
+      <div class="section-box" id="prof-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CREATE QUIZ ────────────────────────────── -->
+<div class="page" id="pg-create">
+  <div class="container">
+    <div class="create-wrap" style="padding-top:8px">
+      <button class="btn btn-gray btn-sm" onclick="loadHome()" style="margin-bottom:12px">← Annuler</button>
+      <h1 style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;margin-bottom:16px">✏️ Créer un quiz</h1>
+
+      <!-- Step indicators -->
+      <div class="steps">
+        <div class="step active" id="step-1">1. Informations</div>
+        <div class="step"        id="step-2">2. Questions</div>
+        <div class="step"        id="step-3">3. Aperçu</div>
+      </div>
+
+      <!-- Step 1 -->
+      <div id="step1-pane">
+        <div class="section-box" style="padding:16px">
+          <div class="field">
+            <label>Titre du quiz *</label>
+            <input type="text" class="inp" id="create-title" placeholder="Ex: Les villes de Côte d'Ivoire">
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea class="inp" id="create-desc" rows="2" placeholder="Décrivez votre quiz..."></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="field">
+              <label>Catégorie *</label>
+              <select class="inp" id="create-category"></select>
+            </div>
+            <div class="field">
+              <label>Type de quiz *</label>
+              <select class="inp" id="create-type">
+                <option value="saisie">📝 Saisie libre</option>
+                <option value="qcm">☑️ QCM</option>
+                <option value="image">🖼️ Image</option>
+                <option value="carte">🗺️ Carte</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="field">
+              <label>Durée (secondes) *</label>
+              <input type="number" class="inp" id="create-time" value="120" min="30" max="600">
+            </div>
+            <div class="field">
+              <label>Sources (optionnel)</label>
+              <input type="text" class="inp" id="create-sources" placeholder="Article, lien...">
+            </div>
+          </div>
+          <div class="field">
+            <label>Image de couverture (optionnel)</label>
+            <div class="img-upload-zone" id="thumb-zone"
+                 onclick="document.getElementById('thumb-file').click()">
+              <input type="file" id="thumb-file" accept="image/*" onchange="handleThumbUpload(this)">
+              🖼️ Cliquer pour uploader une image de couverture
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="goCreateStep(2)">Suivant →</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="step2-pane" style="display:none">
+        <div class="section-box" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 style="font-family:'Baloo 2',cursive;font-weight:800" id="items-type-label">Questions</h3>
+            <button class="btn btn-outline btn-sm" onclick="addNewItem()">+ Ajouter</button>
+          </div>
+          <div id="items-container"></div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn btn-gray"    onclick="goCreateStep(1)">← Retour</button>
+            <button class="btn btn-primary" onclick="goCreateStep(3)">Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="step3-pane" style="display:none">
+        <div class="section-box" style="padding:16px;margin-bottom:14px">
+          <h3 style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800" id="preview-title">-</h3>
+          <p style="color:var(--gray);font-size:13px;margin-top:4px" id="preview-meta">-</p>
+          <p style="margin-top:8px" id="preview-desc"></p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-gray"    onclick="goCreateStep(2)">← Retour</button>
+          <button class="btn btn-primary btn-lg" onclick="publishQuiz()">🚀 Publier le quiz</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADMIN ──────────────────────────────────── -->
+<div class="page" id="pg-admin">
+  <div class="container">
+    <div class="admin-wrap" style="padding-top:8px">
+      <h1 style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;margin-bottom:16px">⚙️ Administration Yoyo</h1>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" id="a-tab-dash"    onclick="switchAdminTab('dash', this)">📊 Dashboard</button>
+        <button class="tab-btn"        id="a-tab-users"   onclick="switchAdminTab('users', this)">👤 Utilisateurs</button>
+        <button class="tab-btn"        id="a-tab-quizzes" onclick="switchAdminTab('quizzes', this)">📝 Quiz</button>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="a-pane-dash" class="tab-pane active">
+        <div class="stat-cards">
+          <div class="stat-card"><div class="stat-card-val" id="a-users">-</div><div class="stat-card-lbl">👤 Utilisateurs</div></div>
+          <div class="stat-card"><div class="stat-card-val" id="a-quizzes">-</div><div class="stat-card-lbl">📝 Quiz total</div></div>
+          <div class="stat-card"><div class="stat-card-val" id="a-published">-</div><div class="stat-card-lbl">✅ Publiés</div></div>
+          <div class="stat-card"><div class="stat-card-val" id="a-plays">-</div><div class="stat-card-lbl">🎮 Parties</div></div>
+          <div class="stat-card"><div class="stat-card-val" id="a-reports">-</div><div class="stat-card-lbl">⚠️ Signalements</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="section-box">
+            <div class="section-head"><h2>👥 Derniers inscrits</h2></div>
+            <table class="lb-table">
+              <thead><tr><th>Pseudo</th><th>Email</th><th>Date</th><th>Action</th></tr></thead>
+              <tbody id="a-recent-users"></tbody>
+            </table>
+          </div>
+          <div class="section-box">
+            <div class="section-head"><h2>⚠️ Signalements en attente</h2></div>
+            <table class="lb-table">
+              <thead><tr><th>Quiz</th><th>Par</th><th>Raison</th><th>Action</th></tr></thead>
+              <tbody id="a-reports-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div id="a-pane-users" class="tab-pane">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="text" class="inp" style="max-width:280px" placeholder="Rechercher..."
+                 id="a-user-search"
+                 onkeydown="if(event.key==='Enter') loadAdminUsers(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="loadAdminUsers(document.getElementById('a-user-search').value)">Chercher</button>
+        </div>
+        <div class="section-box">
+          <table class="lb-table">
+            <thead><tr><th>Pseudo</th><th>Email</th><th>Score</th><th>Joués</th><th>Créés</th><th>Action</th></tr></thead>
+            <tbody id="a-users-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quizzes -->
+      <div id="a-pane-quizzes" class="tab-pane">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="text" class="inp" style="max-width:280px" placeholder="Rechercher..."
+                 id="a-quiz-search"
+                 onkeydown="if(event.key==='Enter') loadAdminQuizzes(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="loadAdminQuizzes(document.getElementById('a-quiz-search').value)">Chercher</button>
+        </div>
+        <div class="section-box">
+          <table class="lb-table">
+            <thead><tr><th>Titre</th><th>Créateur</th><th>Catégorie</th><th>Type</th><th>Statut</th><th>Action</th></tr></thead>
+            <tbody id="a-quizzes-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<footer id="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">🌍 Yoyo</div>
+    <div class="footer-links">
+      <a href="#" onclick="loadHome();return false;">Accueil</a>
+      <a href="#" onclick="loadLeaderboard();return false;">Classement</a>
+      <a href="#" onclick="openCreateQuiz();return false;">Créer un quiz</a>
+    </div>
+    <div class="footer-copy">© 2024 Yoyo – Apprends la Côte d'Ivoire en jouant 🇨🇮</div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════
+     TOAST
+═══════════════════════════════════════════════ -->
+<div id="toasts"></div>
+
+<!-- ═══════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════ -->
+
+<!-- AUTH -->
+<div class="overlay" id="modal-auth">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>🌍 Yoyo</h3>
+      <button class="modal-close" onclick="closeModal('modal-auth')">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div id="auth-err" class="alert alert-err" style="display:none"></div>
+      <div class="tab-nav">
+        <button class="tab-btn active" id="auth-tab-login"    onclick="switchAuthTab('login')">Connexion</button>
+        <button class="tab-btn"        id="auth-tab-register" onclick="switchAuthTab('register')">S'inscrire</button>
+      </div>
+
+      <!-- Login -->
+      <div id="auth-pane-login" class="tab-pane active">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" class="inp" id="l-email" placeholder="ton@email.com">
+        </div>
+        <div class="field">
+          <label>Mot de passe</label>
+          <input type="password" class="inp" id="l-pass" placeholder="••••••">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Se connecter</button>
+        <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--gray)">
+          Pas encore inscrit ? <a href="#" onclick="switchAuthTab('register');return false;">S'inscrire</a>
+        </p>
+      </div>
+
+      <!-- Register -->
+      <div id="auth-pane-register" class="tab-pane">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" class="inp" id="r-email" placeholder="ton@email.com">
+        </div>
+        <div class="field">
+          <label>Pseudonyme</label>
+          <input type="text" class="inp" id="r-pseudo" placeholder="TonPseudo (3-20 car.)">
+        </div>
+        <div class="field">
+          <label>Mot de passe</label>
+          <input type="password" class="inp" id="r-pass" placeholder="Min. 6 caractères">
+        </div>
+        <div class="field">
+          <label>Confirmer le mot de passe</label>
+          <input type="password" class="inp" id="r-confirm" placeholder="••••••">
+        </div>
+        <div class="field">
+          <label>Langue</label>
+          <select class="inp" id="r-lang">
+            <option value="fr">🇫🇷 Français</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doRegister()">Créer mon compte</button>
+        <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--gray)">
+          Déjà inscrit ? <a href="#" onclick="switchAuthTab('login');return false;">Se connecter</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div class="overlay" id="modal-report">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>⚠️ Signaler ce quiz</h3>
+      <button class="modal-close" onclick="closeModal('modal-report')">✕</button>
+    </div>
+    <div class="modal-bd">
+      <input type="hidden" id="report-id">
+      <div class="field">
+        <label>Décrivez le problème</label>
+        <textarea class="inp" id="report-reason" rows="4"
+                  placeholder="Ex: Réponse incorrecte, contenu inapproprié..."></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="submitReport()">Envoyer le signalement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ICON PICKER -->
+<div class="overlay" id="modal-icon">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>Choisir une icône</h3>
+      <button class="modal-close" onclick="closeModal('modal-icon')">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div id="icon-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════ -->
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/home.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/admin.js"></script>
+
+<script>
+// ── Bootstrap ──────────────────────────────────
+(async () => {
+  await initAuth();
+  await initCatBar();
+  loadHome();
+})();
+
+// ── Misc helpers ───────────────────────────────
+function closeMenu() {
+  document.querySelectorAll('.hdr-dropdown').forEach(d => d.classList.remove('open'));
+}
+
+// Fix auth error div visibility
+const authErr = document.getElementById('auth-err');
+new MutationObserver(() => {
+  authErr.style.display = authErr.textContent.trim() ? 'block' : 'none';
+}).observe(authErr, { childList:true, subtree:true, characterData:true });
+
+// More quizzes pages
+async function loadMoreQuizzes(sort) {
+  go('category');
+  closeCatBar();
+  document.getElementById('cat-title').textContent = sort === 'popular' ? '🔥 Quiz Populaires' : '✨ Nouveaux Quiz';
+  const el = document.getElementById('cat-list');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const data = await api.quizzes({ sort, limit: 60 });
+    el.innerHTML = data.quizzes.length
+      ? `<ul class="quiz-list">${data.quizzes.map(quizItem).join('')}</ul>`
+      : `<div class="empty"><div class="empty-icon">🎯</div><p>Aucun quiz</p></div>`;
+  } catch { el.innerHTML = '<div class="empty">Erreur</div>'; }
+}
+
+// icon-opt click style
+document.getElementById('icon-grid').addEventListener('click', e => {
+  const opt = e.target.closest('[onclick^="pickIcon"]');
+  if (!opt) return;
+  document.querySelectorAll('#icon-grid > div').forEach(d => {
+    d.style.borderColor = 'var(--border)';
+  });
+  opt.style.borderColor = 'var(--orange)';
+});
+</script>
+
+</body>
+</html>
