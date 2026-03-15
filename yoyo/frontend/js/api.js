@@ -1,5 +1,5 @@
 // js/api.js - Yoyo API client
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'yoyo-production-28ff.up.railway.app/api';
 
 const api = {
   token: localStorage.getItem('yoyo_token'),
